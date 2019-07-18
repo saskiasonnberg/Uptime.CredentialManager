@@ -21,7 +21,12 @@ namespace Uptime.CredentialManager.Web.Controllers
         // GET: Users
         public async Task<IActionResult> Index()
         {
-            return View(await _context.User.ToListAsync());
+            var users = await _context.User
+                 .Include(x => x.UserCredentials)
+                 .ThenInclude(x => x.Credential)
+                 .ToListAsync();
+
+            return View(users);
         }
 
         // GET: Users/Details/5
@@ -88,6 +93,10 @@ namespace Uptime.CredentialManager.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(Guid id, [Bind("Id,Name")] User user)
         {
+            var userCredential = new UserCredential { UserId = user.Id, CredentialId = Guid.NewGuid() };
+            _context.Add(userCredential);
+           await _context.SaveChangesAsync();
+
             if (id != user.Id)
             {
                 return NotFound();
