@@ -33,18 +33,47 @@ namespace Uptime.CredentialManager.Web.Models
                                         Description = "server2",
                                         Value = "parool2"
                                     },
-                                     new Credential
+                                    new Credential
                                      {
-                                         Id = Guid.NewGuid(),
-                                         Description = "server3",
-                                         Value = "parool3"
-                                     },
-                                      new Credential
-                                      {
+                                        Id = Guid.NewGuid(),
+                                        Description = "server3",
+                                        Value = "parool3"
+                                    },
+                                    new Credential
+                                    {
+                                        Id = Guid.NewGuid(),
+                                        Description = "server4",
+                                        Value = "parool4"
+                                    });
+
+                // Look for any users already in database.
+                if (context.User.Any())
+                {
+                    return;   // Database has been seeded
+                }
+
+                context.User.AddRange(
+                                    new User
+                                    {
+                                        Id = Guid.NewGuid(),
+                                        Name = "Kersti",
+                                    },
+                                    new User
+                                    {
+                                        Id = Guid.NewGuid(),
+                                        Name = "Redi",
+                                    },
+                                    new User
+                                    {
+                                        Id = Guid.NewGuid(),
+                                        Name = "Helmet",
+                                    },
+                                    new User
+                                    {
                                           Id = Guid.NewGuid(),
-                                          Description = "server4",
-                                          Value = "parool4"
-                                      });
+                                          Name = "Saskia",
+                                    });
+
 
                 context.SaveChanges();
 

@@ -38,7 +38,7 @@ namespace Uptime.CredentialManager.Web
 
             services.AddDbContext<UptimeCredentialManagerWebContext>(options =>
                                 //options.UseSqlServer(Configuration.GetConnectionString("UptimeCredentialManagerWebContext")));
-                                options.UseInMemoryDatabase(databaseName: "Credential"));
+                                options.UseInMemoryDatabase(databaseName: "User"));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
