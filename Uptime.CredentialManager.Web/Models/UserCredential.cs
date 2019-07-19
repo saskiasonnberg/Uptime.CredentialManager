@@ -15,7 +15,6 @@ namespace Uptime.CredentialManager.Web.Models
         public Guid CredentialId { get; set; }
         public Credential Credential { get; set; }
 
-
-
+       
     }
 }

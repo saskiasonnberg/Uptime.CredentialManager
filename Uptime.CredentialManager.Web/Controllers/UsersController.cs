@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Uptime.CredentialManager.Web.Models;
+using Uptime.CredentialManager.Web.ViewModels;
 
 namespace Uptime.CredentialManager.Web.Controllers
 {
@@ -21,7 +22,7 @@ namespace Uptime.CredentialManager.Web.Controllers
         // GET: Users
         public async Task<IActionResult> Index()
         {
-            var users = await _context.User
+          var users = await _context.User
                  .Include(x => x.UserCredentials)
                  .ThenInclude(x => x.Credential)
                  .ToListAsync();
@@ -50,7 +51,13 @@ namespace Uptime.CredentialManager.Web.Controllers
         // GET: Users/Create
         public IActionResult Create()
         {
-            return View();
+            /*var model = new UserEditViewModel
+            {
+                UserName = user.Name,
+                SelectItems = user.UserCredentials.Select(x => new SelectListItem(x.Text, x.Guid))
+            }
+            return View(model);*/
+            return View();            
         }
 
         // POST: Users/Create
@@ -58,14 +65,21 @@ namespace Uptime.CredentialManager.Web.Controllers
         // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Name")] User user)
+        public async Task<IActionResult> Create([Bind("Id,Name,UserCredential")] User user)
         {
+
             if (ModelState.IsValid)
             {
-                user.Id = Guid.NewGuid();
-                _context.Add(user);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                var model = new UserEditViewModel();
+                {
+                    var userCredential = new UserCredential { UserId = user.Id, CredentialId = Guid.NewGuid() };
+                    _context.Add(userCredential);
+
+                    user.Id = Guid.NewGuid();
+                    _context.Add(user);
+                    await _context.SaveChangesAsync();
+                    return RedirectToAction(nameof(Index));
+                }
             }
             return View(user);
         }
@@ -91,7 +105,7 @@ namespace Uptime.CredentialManager.Web.Controllers
         // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(Guid id, [Bind("Id,Name")] User user)
+        public async Task<IActionResult> Edit(Guid id, [Bind("Id,Name,UserCredential")] User user)
         {
             var userCredential = new UserCredential { UserId = user.Id, CredentialId = Guid.NewGuid() };
             _context.Add(userCredential);
@@ -122,6 +136,7 @@ namespace Uptime.CredentialManager.Web.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
+           
             return View(user);
         }
 

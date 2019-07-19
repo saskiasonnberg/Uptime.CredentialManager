@@ -25,6 +25,7 @@ namespace Uptime.CredentialManager.Web.Models
                 {
                     Id = Guid.Parse("5327d54b-aa1b-41c2-9b25-be98c7bee83b"),
                     Name = "Kersti",
+                    
                 },
                 new
                 {
