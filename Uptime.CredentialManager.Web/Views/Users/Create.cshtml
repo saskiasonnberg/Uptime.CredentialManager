@@ -1,4 +1,4 @@
-﻿@model Uptime.CredentialManager.Web.Models.User
+﻿@model Uptime.CredentialManager.Web.ViewModels.UserEditViewModel
 
 @{
     ViewData["Title"] = "Create";
@@ -13,14 +13,14 @@
         <form asp-action="Create">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <div class="form-group">
-                <label asp-for="Name" class="control-label"></label>
-                <input asp-for="Name" class="form-control" />
-                <span asp-validation-for="Name" class="text-danger"></span>
+                <label asp-for="UserName" class="control-label">Username</label>
+                <input asp-for="UserName" class="form-control" />
+                <span asp-validation-for="UserName" class="text-danger"></span>
             </div>
             <div class="form-group">
-                <label asp-for="UserCredentials" class="control-label"></label>
-              <!--<select asp-for="" asp-items="Model."></select>-->
-                <span asp-validation-for="UserCredentials" class="text-danger"></span>
+                <label asp-for="SelectedCredential" class="control-label">Credentials</label>
+                <select asp-for="SelectedCredential" asp-items="@Model.Credentials"></select>
+                <span asp-validation-for="SelectedCredential" class="text-danger"></span>
             </div>                                 
                 <div class="form-group">
                     <input type="submit" value="Create" class="btn btn-default" />

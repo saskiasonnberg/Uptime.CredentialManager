@@ -19,6 +19,27 @@ namespace Uptime.CredentialManager.Web.Controllers
             _context = context;
         }
 
+        public IEnumerable<SelectListItem> GetCredentials()
+        {
+            List<SelectListItem> credentials = _context.Credential.AsNoTracking()
+                                                        .OrderBy(x => x.Description)
+                                                        .Select(x =>
+                                                        new SelectListItem
+                                                        {
+                                                            Text = x.Description,
+                                                            Value = x.Id.ToString()
+                                                        }).ToList();
+            var credentialTip = new SelectListItem()
+            {
+                Text = "--- select credential ---",
+                Value = null
+            };
+
+            credentials.Insert(0, credentialTip);
+            return new SelectList(credentials, "Value", "Text");
+        }
+               
+
         // GET: Users
         public async Task<IActionResult> Index()
         {
@@ -26,7 +47,7 @@ namespace Uptime.CredentialManager.Web.Controllers
                  .Include(x => x.UserCredentials)
                  .ThenInclude(x => x.Credential)
                  .ToListAsync();
-
+          
             return View(users);
         }
 
@@ -39,7 +60,10 @@ namespace Uptime.CredentialManager.Web.Controllers
             }
 
             var user = await _context.User
-                .FirstOrDefaultAsync(m => m.Id == id);
+                .Include(x => x.UserCredentials)
+                .ThenInclude(x => x.Credential)
+                .FirstOrDefaultAsync(m => m.Id == id)
+                ;
             if (user == null)
             {
                 return NotFound();
@@ -51,13 +75,11 @@ namespace Uptime.CredentialManager.Web.Controllers
         // GET: Users/Create
         public IActionResult Create()
         {
-            /*var model = new UserEditViewModel
-            {
-                UserName = user.Name,
-                SelectItems = user.UserCredentials.Select(x => new SelectListItem(x.Text, x.Guid))
-            }
-            return View(model);*/
-            return View();            
+            var userVM = new UserEditViewModel();
+            userVM.Credentials = GetCredentials();
+           
+            return View(userVM);
+                  
         }
 
         // POST: Users/Create
@@ -65,23 +87,26 @@ namespace Uptime.CredentialManager.Web.Controllers
         // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Name,UserCredential")] User user)
+        public async Task<IActionResult> Create(UserEditViewModel userVM)
         {
 
             if (ModelState.IsValid)
             {
-                var model = new UserEditViewModel();
+                var user = new User();
                 {
-                    var userCredential = new UserCredential { UserId = user.Id, CredentialId = Guid.NewGuid() };
-                    _context.Add(userCredential);
-
                     user.Id = Guid.NewGuid();
+                    user.Name = userVM.UserName;
+                    user.UserCredentials = new List<UserCredential>();
+
+                    var credential = _context.Find<Credential>(userVM.SelectedCredential);
+                    user.UserCredentials.Add(new UserCredential { User = user, Credential = credential });
                     _context.Add(user);
+
                     await _context.SaveChangesAsync();
                     return RedirectToAction(nameof(Index));
                 }
             }
-            return View(user);
+            return View(userVM);
         }
 
         // GET: Users/Edit/5
@@ -92,7 +117,11 @@ namespace Uptime.CredentialManager.Web.Controllers
                 return NotFound();
             }
 
-            var user = await _context.User.FindAsync(id);
+            var user = await _context.User
+                .Include(x => x.UserCredentials)
+                .ThenInclude(x => x.Credential)
+                .FirstOrDefaultAsync(m => m.Id == id)
+                ;
             if (user == null)
             {
                 return NotFound();
@@ -107,10 +136,7 @@ namespace Uptime.CredentialManager.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(Guid id, [Bind("Id,Name,UserCredential")] User user)
         {
-            var userCredential = new UserCredential { UserId = user.Id, CredentialId = Guid.NewGuid() };
-            _context.Add(userCredential);
-           await _context.SaveChangesAsync();
-
+        
             if (id != user.Id)
             {
                 return NotFound();

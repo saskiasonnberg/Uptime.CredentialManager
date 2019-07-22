@@ -18,17 +18,46 @@
                 <input asp-for="Name" class="form-control" />
                 <span asp-validation-for="Name" class="text-danger"></span>
             </div>
+            <div>
             <div class="form-group">
-                <label asp-for="UserCredentials" class="control-label"></label>
-                <input asp-for="UserCredentials" class="form-control" />
-                <span asp-validation-for="UserCredentials" class="text-danger"></span>
+                <label asp-for="UserCredentials" class="control-label">Add New Credentials</label>
+               <!-- <input asp-for="UserCredentials" class="form-control" />-->
+               <!-- <span asp-validation-for="UserCredentials" class="text-danger"></span>-->
             </div>
+            </div>
+                <table>
+                    <col width="150">
+                    <col width="150">
+                    <col width="300">
+
+                    @foreach (var i in Model.UserCredentials)
+                    {
+                        <tr>
+
+                            <td>
+                                @i.Credential.Description
+                            </td>
+                            <td>
+                                @i.Credential.Value
+                            </td>
+                            <td>
+                                @Html.ActionLink("Edit", "Edit", "Credentials", new { id = i.Id }, null)
+                                | @Html.ActionLink("Remove", "Remove", "Credentials", new { id = i.Id }, null)
+                            </td>
+                        </tr>
+                    }
+                </table>
+
+
+            
             <div class="form-group">
                 <input type="submit" value="Save" class="btn btn-default" />
             </div>
         </form>
     </div>
 </div>
+
+
 
 <div>
     <a asp-action="Index">Back to List</a>

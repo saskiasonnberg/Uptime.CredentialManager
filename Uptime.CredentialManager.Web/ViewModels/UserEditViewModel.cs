@@ -10,7 +10,7 @@ namespace Uptime.CredentialManager.Web.ViewModels
     {
         public string UserName { get; set; }
 
-        public string SelectedCredential { get; set; }
+        public Guid SelectedCredential { get; set; }
         public IEnumerable<SelectListItem> Credentials { get; set; }
 
     }
