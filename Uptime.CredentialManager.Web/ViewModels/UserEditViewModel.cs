@@ -6,10 +6,8 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Uptime.CredentialManager.Web.ViewModels
 {
-    public class UserEditViewModel
+    public class UserEditViewModel : UserViewModel
     {
-        public string UserName { get; set; }
-
         public Guid SelectedCredential { get; set; }
         public IEnumerable<SelectListItem> Credentials { get; set; }
 

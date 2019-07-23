@@ -1,4 +1,4 @@
-﻿@model Uptime.CredentialManager.Web.Models.User
+﻿@model Uptime.CredentialManager.Web.ViewModels.UserEditViewModel
 
 @{
     ViewData["Title"] = "Edit";
@@ -10,46 +10,44 @@
 <hr />
 <div class="row">
     <div class="col-md-4">
-        <form asp-action="Edit">
+        <form asp-action="Edit" method="post">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <input type="hidden" asp-for="Id" />
             <div class="form-group">
-                <label asp-for="Name" class="control-label"></label>
-                <input asp-for="Name" class="form-control" />
-                <span asp-validation-for="Name" class="text-danger"></span>
+                <label asp-for="UserName" class="control-label">Username</label>
+                <input asp-for="UserName" class="form-control" />
+                <span asp-validation-for="UserName" class="text-danger"></span>
+            </div>
+            <input type ="hidden" asp-for="UserId" />
+            <div>
+                <div class="form-group">
+                    <label asp-for="Credentials" class="control-label">Credentials</label>
+                    <select asp-for="SelectedCredential" asp-items="@Model.Credentials"></select>
+                    <span asp-validation-for="Credentials" class="text-danger"></span>
+                </div>
             </div>
             <div>
-            <div class="form-group">
-                <label asp-for="UserCredentials" class="control-label">Add New Credentials</label>
-               <!-- <input asp-for="UserCredentials" class="form-control" />-->
-               <!-- <span asp-validation-for="UserCredentials" class="text-danger"></span>-->
-            </div>
-            </div>
                 <table>
                     <col width="150">
                     <col width="150">
                     <col width="300">
 
-                    @foreach (var i in Model.UserCredentials)
+                    @foreach (var credential in @Model.CredentialList)
                     {
                         <tr>
+                            <td>
+                                @credential.Description
 
-                            <td>
-                                @i.Credential.Description
                             </td>
                             <td>
-                                @i.Credential.Value
-                            </td>
-                            <td>
-                                @Html.ActionLink("Edit", "Edit", "Credentials", new { id = i.Id }, null)
-                                | @Html.ActionLink("Remove", "Remove", "Credentials", new { id = i.Id }, null)
+                                @Html.ActionLink("Edit", "Edit", "Credentials", new { id = credential.Id }, null)
+                                | @Html.ActionLink("Remove", "Remove", "Users", new { userId = Model.UserId, credentialId = credential.Id }, null)
                             </td>
                         </tr>
                     }
                 </table>
 
+            </div>
 
-            
             <div class="form-group">
                 <input type="submit" value="Save" class="btn btn-default" />
             </div>

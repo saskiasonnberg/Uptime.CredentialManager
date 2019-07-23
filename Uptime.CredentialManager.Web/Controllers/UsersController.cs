@@ -60,10 +60,10 @@ namespace Uptime.CredentialManager.Web.Controllers
             }
 
             var user = await _context.User
-                .Include(x => x.UserCredentials)
-                .ThenInclude(x => x.Credential)
-                .FirstOrDefaultAsync(m => m.Id == id)
-                ;
+                                    .Include(x => x.UserCredentials)
+                                    .ThenInclude(x => x.Credential)
+                                    .FirstOrDefaultAsync(m => m.Id == id)
+                                    ;
             if (user == null)
             {
                 return NotFound();
@@ -116,17 +116,33 @@ namespace Uptime.CredentialManager.Web.Controllers
             {
                 return NotFound();
             }
+            
+            var user = await _context.User.Include(x => x.UserCredentials)
+                                          .ThenInclude(x => x.Credential)
+                                          .FirstOrDefaultAsync(m => m.Id == id);
 
-            var user = await _context.User
-                .Include(x => x.UserCredentials)
-                .ThenInclude(x => x.Credential)
-                .FirstOrDefaultAsync(m => m.Id == id)
-                ;
             if (user == null)
             {
                 return NotFound();
             }
-            return View(user);
+            
+                         
+           var userVM = new UserEditViewModel();
+            {                
+                userVM.UserId = user.Id;
+                userVM.UserName = user.Name;
+                userVM.CredentialList = user.UserCredentials.Select(x => new CredentialViewModel
+                {
+                    Id = x.CredentialId,
+                    Description = x.Credential.Description
+                }).ToList();
+
+                userVM.Credentials = GetCredentials();
+                                       
+            };
+                            
+
+            return View(userVM);
         }
 
         // POST: Users/Edit/5
@@ -134,24 +150,25 @@ namespace Uptime.CredentialManager.Web.Controllers
         // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(Guid id, [Bind("Id,Name,UserCredential")] User user)
+        public async Task<IActionResult> Edit(UserEditViewModel userVM)
         {
-        
-            if (id != user.Id)
-            {
-                return NotFound();
-            }
-
             if (ModelState.IsValid)
             {
                 try
                 {
+                    var user = await _context.User.Include(x => x.UserCredentials).FirstOrDefaultAsync(m => m.Id == userVM.UserId);
+                    {                       
+                        user.Name = userVM.UserName;
+                                             
+                        var credential = _context.Find<Credential>(userVM.SelectedCredential);
+                        user.UserCredentials.Add(new UserCredential { User = user, Credential = credential });
+                    }
                     _context.Update(user);
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!UserExists(user.Id))
+                    if (!UserExists(userVM.UserId))
                     {
                         return NotFound();
                     }
@@ -160,10 +177,11 @@ namespace Uptime.CredentialManager.Web.Controllers
                         throw;
                     }
                 }
+
                 return RedirectToAction(nameof(Index));
             }
            
-            return View(user);
+            return View(userVM);
         }
 
         // GET: Users/Delete/5
@@ -193,11 +211,13 @@ namespace Uptime.CredentialManager.Web.Controllers
             _context.User.Remove(user);
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
-        }
+        }                
 
         private bool UserExists(Guid id)
         {
             return _context.User.Any(e => e.Id == id);
         }
+              
+
     }
 }
