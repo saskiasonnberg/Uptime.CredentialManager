@@ -1,4 +1,4 @@
-﻿@model Uptime.CredentialManager.Web.Models.User
+﻿@model Uptime.CredentialManager.Web.ViewModels.UserEditViewModel
 
 @{
     ViewData["Title"] = "Details";
@@ -11,21 +11,31 @@
     <hr />
     <dl class="dl-horizontal">
         <dt>
-            @Html.DisplayNameFor(model => model.Name)
+            @Html.DisplayName("Username")
         </dt>
         <dd>
-            @Html.DisplayFor(model => model.Name)
+            @Html.DisplayFor(model => model.UserName)
         </dd>
-        <dt>
-            @Html.DisplayNameFor(model => model.UserCredentials)
-        </dt>
-        <dd>
-            @Html.DisplayFor(model => model.UserCredentials)
-        </dd>
-
     </dl>
 </div>
+
 <div>
-    <a asp-action="Edit" asp-route-id="@Model.Id">Edit</a> |
+    <table>
+        <col width="150">
+        <tr>Credentials:</tr>
+        @foreach (var credential in @Model.CredentialList)
+        {
+            <tr>
+                <td>
+                    @credential.Description
+                </td>
+            </tr>
+        }
+    </table>
+</div>
+
+
+<div>
+    <a asp-action="Edit" asp-route-id="@Model.UserId">Edit</a> |
     <a asp-action="Index">Back to List</a>
 </div>

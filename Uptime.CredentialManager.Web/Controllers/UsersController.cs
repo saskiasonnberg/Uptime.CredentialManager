@@ -59,17 +59,27 @@ namespace Uptime.CredentialManager.Web.Controllers
                 return NotFound();
             }
 
-            var user = await _context.User
-                                    .Include(x => x.UserCredentials)
-                                    .ThenInclude(x => x.Credential)
-                                    .FirstOrDefaultAsync(m => m.Id == id)
-                                    ;
+            var user = await _context.User.Include(x => x.UserCredentials)
+                                          .ThenInclude(x => x.Credential)
+                                          .FirstOrDefaultAsync(m => m.Id == id);
+
             if (user == null)
             {
                 return NotFound();
             }
+            
+            var userVM = new UserEditViewModel();
+            {
+                userVM.UserId = user.Id;
+                userVM.UserName = user.Name;
+                userVM.CredentialList = user.UserCredentials.Select(x => new CredentialViewModel
+                {
+                    Id = x.CredentialId,
+                    Description = x.Credential.Description
+                }).ToList();
+            };
 
-            return View(user);
+            return View(userVM);
         }
 
         // GET: Users/Create
