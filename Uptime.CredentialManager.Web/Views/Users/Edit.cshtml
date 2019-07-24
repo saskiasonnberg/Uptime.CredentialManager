@@ -29,8 +29,7 @@
                 <table>
                     <col width="150">
                     <col width="150">
-                    <col width="300">
-
+                    
                     @foreach (var credential in @Model.CredentialList)
                     {
                         <tr>
@@ -40,7 +39,7 @@
                             </td>
                             <td>
                                 @Html.ActionLink("Edit", "Edit", "Credentials", new { id = credential.Id }, null)
-                                | @Html.ActionLink("Remove", "Remove", "Users", new { userId = Model.UserId, credentialId = credential.Id }, null)
+                                | @Html.ActionLink("Remove", "Remove", "Users", new { userId = @Model.UserId, credentialId = credential.Id }, null)
                             </td>
                         </tr>
                     }

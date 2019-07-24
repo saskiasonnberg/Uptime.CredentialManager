@@ -125,7 +125,7 @@ namespace Uptime.CredentialManager.Web.Controllers
             {
                 return NotFound();
             }
-            
+                
                          
            var userVM = new UserEditViewModel();
             {                
@@ -178,9 +178,11 @@ namespace Uptime.CredentialManager.Web.Controllers
                     }
                 }
 
-                return RedirectToAction(nameof(Index));
+                //return RedirectToAction(nameof(Index));
+                return RedirectToAction("Edit", new { id = userVM.UserId });
             }
-           
+
+            
             return View(userVM);
         }
 
@@ -217,7 +219,25 @@ namespace Uptime.CredentialManager.Web.Controllers
         {
             return _context.User.Any(e => e.Id == id);
         }
-              
+
+
+        //[HttpGet("{userId}/{credentialId}")]
+        public async Task<IActionResult> Remove(Guid userId, Guid credentialId)
+        {
+            
+                var user = await _context.User.Include(x => x.UserCredentials)
+                                              .ThenInclude(x => x.Credential)
+                                              .FirstOrDefaultAsync(m => m.Id == userId);
+
+            var userCredential = user.UserCredentials.FirstOrDefault(x => x.CredentialId == credentialId);
+
+            user.UserCredentials.Remove(userCredential);
+                       
+            _context.Update(user);
+                await _context.SaveChangesAsync();
+
+            return RedirectToAction("Edit", new { id = userId });
+        }
 
     }
 }
