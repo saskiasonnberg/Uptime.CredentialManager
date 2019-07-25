@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Internal;
 using Uptime.CredentialManager.Web.Models;
 using Uptime.CredentialManager.Web.ViewModels;
 
@@ -19,16 +21,18 @@ namespace Uptime.CredentialManager.Web.Controllers
             _context = context;
         }
 
-        public IEnumerable<SelectListItem> GetUsers()
+        public IEnumerable<SelectListItem> GetUsers(Expression<Func<User, bool>> predicate)
         {
-            List<SelectListItem> users = _context.User.AsNoTracking()
-                                                        .OrderBy(x => x.Name)
-                                                        .Select(x =>
-                                                        new SelectListItem
-                                                        {
-                                                            Text = x.Name,
-                                                            Value = x.Id.ToString()
-                                                        }).ToList();
+            List<SelectListItem> users = _context.User
+                                                 .Include(x => x.UserCredentials)
+                                                 .Where(predicate)
+                                                 .OrderBy(x => x.Name)
+                                                 .Select(x =>
+                                                    new SelectListItem
+                                                    {
+                                                        Text = x.Name,
+                                                        Value = x.Id.ToString()
+                                                    }).ToList();
             var credentialTip = new SelectListItem()
             {
                 Text = "--- select user ---",
@@ -80,7 +84,7 @@ namespace Uptime.CredentialManager.Web.Controllers
         public IActionResult Create()
         {
             var credentialVM = new CredentialEditViewModel();
-            credentialVM.Users = GetUsers();
+            credentialVM.Users = GetUsers(x => true);
 
             return View(credentialVM);
         }
@@ -146,7 +150,7 @@ namespace Uptime.CredentialManager.Web.Controllers
                     UserName = x.User.Name
                 }).ToList();
 
-                credentialVM.Users = GetUsers();
+                credentialVM.Users = GetUsers(x => !x.UserCredentials.Any(y => x.Id == y.UserId));
             };
            
             return View(credentialVM);

@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Internal;
 using Uptime.CredentialManager.Web.Models;
 using Uptime.CredentialManager.Web.ViewModels;
 
@@ -19,9 +21,11 @@ namespace Uptime.CredentialManager.Web.Controllers
             _context = context;
         }
 
-        public IEnumerable<SelectListItem> GetCredentials()
+        public IEnumerable<SelectListItem> GetCredentials(Expression<Func<Credential, bool>> predicate)
         {
-            List<SelectListItem> credentials = _context.Credential.AsNoTracking()
+            List<SelectListItem> credentials = _context.Credential
+                                                        .Include(x => x.UserCredentials)
+                                                        .Where(predicate)
                                                         .OrderBy(x => x.Description)
                                                         .Select(x =>
                                                         new SelectListItem
@@ -86,7 +90,7 @@ namespace Uptime.CredentialManager.Web.Controllers
         public IActionResult Create()
         {
             var userVM = new UserEditViewModel();
-            userVM.Credentials = GetCredentials();
+            userVM.Credentials = GetCredentials(x => true);
            
             return View(userVM);
                   
@@ -150,7 +154,7 @@ namespace Uptime.CredentialManager.Web.Controllers
                     Description = x.Credential.Description
                 }).ToList();
 
-                userVM.Credentials = GetCredentials();
+                userVM.Credentials = GetCredentials(x => !x.UserCredentials.Any(y => x.Id == y.CredentialId));
                                        
             };
                             
@@ -240,7 +244,7 @@ namespace Uptime.CredentialManager.Web.Controllers
         public async Task<IActionResult> Remove(Guid userId, Guid credentialId)
         {
             
-                var user = await _context.User.Include(x => x.UserCredentials)
+            var user = await _context.User.Include(x => x.UserCredentials)
                                               .ThenInclude(x => x.Credential)
                                               .FirstOrDefaultAsync(m => m.Id == userId);
 
