@@ -12,5 +12,7 @@ namespace Uptime.CredentialManager.Web.ViewModels
         public string Description { get; set; }
 
         public string Value { get; set; }
+
+        public IEnumerable<UserViewModel> UserList { get; set; }
     }
 }

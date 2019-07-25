@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Uptime.CredentialManager.Web.Models;
+using Uptime.CredentialManager.Web.ViewModels;
 
 namespace Uptime.CredentialManager.Web.Controllers
 {
@@ -18,6 +19,26 @@ namespace Uptime.CredentialManager.Web.Controllers
             _context = context;
         }
 
+        public IEnumerable<SelectListItem> GetUsers()
+        {
+            List<SelectListItem> users = _context.User.AsNoTracking()
+                                                        .OrderBy(x => x.Name)
+                                                        .Select(x =>
+                                                        new SelectListItem
+                                                        {
+                                                            Text = x.Name,
+                                                            Value = x.Id.ToString()
+                                                        }).ToList();
+            var credentialTip = new SelectListItem()
+            {
+                Text = "--- select user ---",
+                Value = null
+            };
+
+            users.Insert(0, credentialTip);
+            return new SelectList(users, "Value", "Text");
+        }
+        
         // GET: Credentials
         public async Task<IActionResult> Index()
         {
@@ -32,20 +53,36 @@ namespace Uptime.CredentialManager.Web.Controllers
                 return NotFound();
             }
 
-            var credential = await _context.Credential
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var credential = await _context.Credential.Include(x => x.UserCredentials)
+                                                      .ThenInclude(x => x.User)
+                                                      .FirstOrDefaultAsync(m => m.Id == id);
             if (credential == null)
             {
                 return NotFound();
             }
 
-            return View(credential);
+            var credentialVM = new CredentialEditViewModel();
+            {
+                credentialVM.Id = credential.Id;
+                credentialVM.Description = credential.Description;
+                credentialVM.Value = credential.Value;
+                credentialVM.UserList = credential.UserCredentials.Select(x => new UserViewModel
+                {
+                    UserId = x.UserId,
+                    UserName = x.User.Name
+                }).ToList();
+            };
+
+            return View(credentialVM);
         }
 
         // GET: Credentials/Create
         public IActionResult Create()
         {
-            return View();
+            var credentialVM = new CredentialEditViewModel();
+            credentialVM.Users = GetUsers();
+
+            return View(credentialVM);
         }
 
         // POST: Credentials/Create
@@ -53,16 +90,32 @@ namespace Uptime.CredentialManager.Web.Controllers
         // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Description,Value")] Credential credential)
+        public async Task<IActionResult> Create(CredentialEditViewModel credentialVM)
         {
             if (ModelState.IsValid)
             {
-                credential.Id = Guid.NewGuid();
-                _context.Add(credential);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+               var credential = new Credential();
+                {
+                    credential.Id = Guid.NewGuid();
+                    credential.Description = credentialVM.Description;
+                    credential.Value = credentialVM.Value;                         
+             
+                    credential.UserCredentials = new List<UserCredential>();
+                                      
+                    foreach (Guid userId in credentialVM.SelectedUser)
+                    {
+                        var user = _context.Find<User>(userId);
+                        credential.UserCredentials.Add(new UserCredential { User = user, Credential = credential });
+                        _context.Add(credential);
+                    }
+                    
+
+                    await _context.SaveChangesAsync();
+                    return RedirectToAction(nameof(Index));
+                }
+                                                          
             }
-            return View(credential);
+            return View(credentialVM);
         }
 
         // GET: Credentials/Edit/5
@@ -73,12 +126,30 @@ namespace Uptime.CredentialManager.Web.Controllers
                 return NotFound();
             }
 
-            var credential = await _context.Credential.FindAsync(id);
+            var credential = await _context.Credential.Include(x => x.UserCredentials)
+                                                      .ThenInclude(x => x.User)
+                                                      .FirstOrDefaultAsync(m => m.Id == id);           
+                                               
             if (credential == null)
             {
                 return NotFound();
             }
-            return View(credential);
+
+            var credentialVM = new CredentialEditViewModel();
+            {
+                credentialVM.Id = credential.Id;
+                credentialVM.Description= credential.Description;
+                credentialVM.Value = credential.Value;
+                credentialVM.UserList = credential.UserCredentials.Select(x => new UserViewModel
+                {
+                    UserId = x.UserId,
+                    UserName = x.User.Name
+                }).ToList();
+
+                credentialVM.Users = GetUsers();
+            };
+           
+            return View(credentialVM);
         }
 
         // POST: Credentials/Edit/5
@@ -86,23 +157,28 @@ namespace Uptime.CredentialManager.Web.Controllers
         // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(Guid id, [Bind("Id,Description,Value")] Credential credential)
+        public async Task<IActionResult> Edit(CredentialEditViewModel credentialVM)
         {
-            if (id != credential.Id)
-            {
-                return NotFound();
-            }
-
-            if (ModelState.IsValid)
+           if (ModelState.IsValid)
             {
                 try
                 {
-                    _context.Update(credential);
+                    var credential = await _context.Credential.Include(x => x.UserCredentials).FirstOrDefaultAsync(m => m.Id == credentialVM.Id);
+                    {
+                        credential.Description = credentialVM.Description;
+                        credential.Value = credentialVM.Value;
+
+                        foreach (Guid userId in credentialVM.SelectedUser)
+                        {
+                            var user = _context.Find<User>(userId);
+                            credential.UserCredentials.Add(new UserCredential { User = user, Credential = credential });
+                        }
+                    }
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!CredentialExists(credential.Id))
+                    if (!CredentialExists(credentialVM.Id))
                     {
                         return NotFound();
                     }
@@ -111,9 +187,10 @@ namespace Uptime.CredentialManager.Web.Controllers
                         throw;
                     }
                 }
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction("Edit", new { id = credentialVM.Id });
+                //return RedirectToAction(nameof(Index));
             }
-            return View(credential);
+            return View(credentialVM);
         }
 
         // GET: Credentials/Delete/5
@@ -143,6 +220,23 @@ namespace Uptime.CredentialManager.Web.Controllers
             _context.Credential.Remove(credential);
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
+        }
+
+        //[HttpGet("{userId}/{credentialId}")]
+        public async Task<IActionResult> Remove(Guid userId, Guid credentialId)
+        {
+
+            var credential = await _context.Credential.Include(x => x.UserCredentials)
+                                          .ThenInclude(x => x.User)
+                                          .FirstOrDefaultAsync(m => m.Id == credentialId);
+
+            var userCredential = credential.UserCredentials.FirstOrDefault(x => x.UserId == userId);
+
+            credential.UserCredentials.Remove(userCredential);
+
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction("Edit", new { id = credentialId });
         }
 
         private bool CredentialExists(Guid id)

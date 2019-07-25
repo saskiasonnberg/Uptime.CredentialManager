@@ -173,7 +173,6 @@ namespace Uptime.CredentialManager.Web.Controllers
                         var credential = _context.Find<Credential>(userVM.SelectedCredential);
                         user.UserCredentials.Add(new UserCredential { User = user, Credential = credential });
                     }
-                    _context.Update(user);
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
@@ -243,8 +242,7 @@ namespace Uptime.CredentialManager.Web.Controllers
 
             user.UserCredentials.Remove(userCredential);
                        
-            _context.Update(user);
-                await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
 
             return RedirectToAction("Edit", new { id = userId });
         }

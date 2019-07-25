@@ -11,7 +11,7 @@ namespace Uptime.CredentialManager.Web.Models
 
         public string Name { get; set; }
 
-        public virtual ICollection<UserCredential> UserCredentials { get; set; }
+        public ICollection<UserCredential> UserCredentials { get; set; }
 
     }
 }
