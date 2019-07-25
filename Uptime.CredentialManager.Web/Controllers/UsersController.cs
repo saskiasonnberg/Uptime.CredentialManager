@@ -108,10 +108,13 @@ namespace Uptime.CredentialManager.Web.Controllers
                     user.Name = userVM.UserName;
                     user.UserCredentials = new List<UserCredential>();
 
-                    var credential = _context.Find<Credential>(userVM.SelectedCredential);
-                    user.UserCredentials.Add(new UserCredential { User = user, Credential = credential });
-                    _context.Add(user);
-
+                    foreach (Guid credentialId in userVM.SelectedCredential)
+                    {
+                        var credential = _context.Find<Credential>(credentialId);
+                        user.UserCredentials.Add(new UserCredential { User = user, Credential = credential });
+                        _context.Add(user);
+                    }
+                    
                     await _context.SaveChangesAsync();
                     return RedirectToAction(nameof(Index));
                 }
@@ -169,9 +172,12 @@ namespace Uptime.CredentialManager.Web.Controllers
                     var user = await _context.User.Include(x => x.UserCredentials).FirstOrDefaultAsync(m => m.Id == userVM.UserId);
                     {                       
                         user.Name = userVM.UserName;
-                                             
-                        var credential = _context.Find<Credential>(userVM.SelectedCredential);
-                        user.UserCredentials.Add(new UserCredential { User = user, Credential = credential });
+
+                        foreach (Guid credentialId in userVM.SelectedCredential)
+                        {
+                            var credential = _context.Find<Credential>(credentialId);
+                            user.UserCredentials.Add(new UserCredential { User = user, Credential = credential });
+                        }                                               
                     }
                     await _context.SaveChangesAsync();
                 }
