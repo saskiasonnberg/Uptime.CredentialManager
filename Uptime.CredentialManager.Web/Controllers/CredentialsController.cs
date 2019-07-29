@@ -243,6 +243,20 @@ namespace Uptime.CredentialManager.Web.Controllers
             return RedirectToAction("Edit", new { id = credentialId });
         }
 
+        /*public async Task<IEnumerable<Credential>> SearchAsync(string term)
+        {
+            var pattern = $"%{term}%";
+
+            var credential = await _context.Credential.Include(x => x.UserCredentials)
+                                            .ThenInclude(x => x.User)
+                                            .Where(x => x.Description.Contains(pattern))
+                                                                        .ToListAsync();
+
+            return View();
+                                          
+        }*/
+        
+
         private bool CredentialExists(Guid id)
         {
             return _context.Credential.Any(e => e.Id == id);

@@ -9,7 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Uptime.CredentialManager.Web.Models;
-
+using Microsoft.Extensions.Hosting;
 
 namespace Uptime.CredentialManager.Web
 {
@@ -19,7 +19,7 @@ namespace Uptime.CredentialManager.Web
         {
 
             //1. Get the IWebHost which will host this application.
-            var host = CreateWebHostBuilder(args).Build();
+            var host = CreateHostBuilder(args).Build();
 
             //2. Find the service layer within our scope.
             using (var scope = host.Services.CreateScope())
@@ -35,7 +35,7 @@ namespace Uptime.CredentialManager.Web
 
         }
 
-        public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
+        public static IWebHostBuilder CreateHostBuilder(string[] args) =>
             WebHost.CreateDefaultBuilder(args)
                 .UseStartup<Startup>();
     }

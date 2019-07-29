@@ -4,30 +4,14 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Uptime.CredentialManager.Web.Models;
-using Microsoft.AspNetCore.Authorization;
+using WebApplication2.Models;
 
-namespace Uptime.CredentialManager.Web.Controllers
+namespace WebApplication2.Controllers
 {
     public class HomeController : Controller
     {
-        [Authorize]
         public IActionResult Index()
         {
-            return RedirectToAction("Index", "Users");           
-        }
-
-        public IActionResult About()
-        {
-            ViewData["Message"] = "Your application description page.";
-
-            return View();
-        }
-
-        public IActionResult Contact()
-        {
-            ViewData["Message"] = "Your contact page.";
-
             return View();
         }
 
