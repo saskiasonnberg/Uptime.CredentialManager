@@ -241,25 +241,50 @@ namespace Uptime.CredentialManager.Web.Controllers
             await _context.SaveChangesAsync();
 
             return RedirectToAction("Edit", new { id = credentialId });
-        }
-
-        /*public async Task<IEnumerable<Credential>> SearchAsync(string term)
-        {
-            var pattern = $"%{term}%";
-
-            var credential = await _context.Credential.Include(x => x.UserCredentials)
-                                            .ThenInclude(x => x.User)
-                                            .Where(x => x.Description.Contains(pattern))
-                                                                        .ToListAsync();
-
-            return View();
-                                          
-        }*/
-        
+        }                     
 
         private bool CredentialExists(Guid id)
         {
             return _context.Credential.Any(e => e.Id == id);
         }
+
+        private async Task<IEnumerable<Credential>> SearchAsync(string term)
+        {
+            var pattern = $"{term}";           
+
+            return await _context.Credential.Include(x => x.UserCredentials)
+                                            .ThenInclude(x => x.User)
+                                            .Where(x => x.Description.Contains(pattern))
+                                            .ToListAsync();
+        }
+
+
+
+        // GET: Credentials/Search
+        public IActionResult Search()
+        {
+            var credential = new List<Credential>();                      
+
+            return View(credential);
+        }
+
+        // POST: Credentials/Search
+        [HttpPost]
+        public async Task<IActionResult> Search(string term)
+        {
+
+            var credential = await SearchAsync(term); 
+            foreach (var cr in credential)
+            {
+               ViewBag.UserListSearch = cr.UserCredentials.Select(x => new UserViewModel
+                {
+                    UserId = x.UserId,
+                    UserName = x.User.Name
+                }).ToList();
+            }
+
+            return View(credential);            
+        }
+
     }
 }

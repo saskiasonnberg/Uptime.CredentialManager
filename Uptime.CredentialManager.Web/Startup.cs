@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.Extensions.Hosting;
+using Microsoft.IdentityModel.Logging;
 
 namespace Uptime.CredentialManager.Web
 {
@@ -39,7 +40,7 @@ namespace Uptime.CredentialManager.Web
             services.Configure<OpenIdConnectOptions>(AzureADDefaults.OpenIdScheme, options =>
             {
                 options.Authority = options.Authority + "/v2.0/";
-                options.TokenValidationParameters.ValidateIssuer = true;
+                options.TokenValidationParameters.ValidateIssuer = false;
             });
             
 
@@ -49,6 +50,8 @@ namespace Uptime.CredentialManager.Web
                    .RequireAuthenticatedUser()
                    .Build();
                 options.Filters.Add(new AuthorizeFilter(policy));
+
+               IdentityModelEventSource.ShowPII = true;
             })           
             .SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
 

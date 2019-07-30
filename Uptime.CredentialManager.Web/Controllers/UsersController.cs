@@ -197,10 +197,9 @@ namespace Uptime.CredentialManager.Web.Controllers
                     }
                 }
 
-                //return RedirectToAction(nameof(Index));
-                return RedirectToAction("Edit", new { id = userVM.UserId });
+                return RedirectToAction(nameof(Index));
+               // return RedirectToAction("Edit", new { id = userVM.UserId });
             }
-
             
             return View(userVM);
         }
@@ -255,7 +254,7 @@ namespace Uptime.CredentialManager.Web.Controllers
             await _context.SaveChangesAsync();
 
             return RedirectToAction("Edit", new { id = userId });
-        }
+        }       
 
     }
 }
