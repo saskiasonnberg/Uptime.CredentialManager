@@ -142,9 +142,29 @@ namespace Uptime.CredentialManager.Web.Controllers
             {
                 return NotFound();
             }
-                
-                         
-           var userVM = new UserEditViewModel();
+            
+
+            var unusedCredentials = _context.Credential                                                  
+                .Where(x => !IsCredentialUnderUser(x, user))
+                .OrderBy(x => x.Description)
+                .Select(x => new SelectListItem
+                {
+                    Text = x.Description,
+                    Value = x.Id.ToString()
+                })
+                .ToList();
+            
+            var credentialTipp = new SelectListItem()
+            {
+                Text = "--- select credential ---",
+                Value = null
+            };
+
+            unusedCredentials.Insert(0, credentialTipp);
+            var dropdown = new SelectList(unusedCredentials, "Value", "Text");
+                       
+
+            var userVM = new UserEditViewModel();
             {                
                 userVM.UserId = user.Id;
                 userVM.UserName = user.Name;
@@ -154,12 +174,16 @@ namespace Uptime.CredentialManager.Web.Controllers
                     Description = x.Credential.Description
                 }).ToList();
 
-                userVM.Credentials = GetCredentials(x => !x.UserCredentials.Any(y => x.Id == y.CredentialId));
-                                       
+                userVM.Credentials = dropdown;
             };
                             
 
             return View(userVM);
+        }
+
+        private bool IsCredentialUnderUser(Credential credential, User user)
+        {
+            return user.UserCredentials.Any(x => x.CredentialId == credential.Id);
         }
 
         // POST: Users/Edit/5
@@ -197,10 +221,10 @@ namespace Uptime.CredentialManager.Web.Controllers
                     }
                 }
 
-                return RedirectToAction(nameof(Index));
-               // return RedirectToAction("Edit", new { id = userVM.UserId });
+                //return RedirectToAction(nameof(Index));
+               return RedirectToAction("Edit", new { id = userVM.UserId });
             }
-            
+                       
             return View(userVM);
         }
 

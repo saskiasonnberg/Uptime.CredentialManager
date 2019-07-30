@@ -96,6 +96,12 @@ namespace Uptime.CredentialManager.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CredentialEditViewModel credentialVM)
         {
+           /* if (pekkis)
+            {
+                return Unauthorized();
+
+            }*/
+
             if (ModelState.IsValid)
             {
                var credential = new Credential();
@@ -139,6 +145,26 @@ namespace Uptime.CredentialManager.Web.Controllers
                 return NotFound();
             }
 
+
+            var unusedUsers= _context.User
+                                    .Where(x => !IsUserUnderCredential(x, credential))
+                                    .OrderBy(x => x.Name)
+                                    .Select(x =>
+                                    new SelectListItem
+                                    {
+                                        Text = x.Name,
+                                        Value = x.Id.ToString()
+                                    }).ToList();
+            var credentialTipp = new SelectListItem()
+            {
+                Text = "--- select user ---",
+                Value = null
+            };
+
+            unusedUsers.Insert(0, credentialTipp);
+            var dropdown = new SelectList(unusedUsers, "Value", "Text");
+
+
             var credentialVM = new CredentialEditViewModel();
             {
                 credentialVM.Id = credential.Id;
@@ -150,10 +176,15 @@ namespace Uptime.CredentialManager.Web.Controllers
                     UserName = x.User.Name
                 }).ToList();
 
-                credentialVM.Users = GetUsers(x => !x.UserCredentials.Any(y => x.Id == y.UserId));
+                credentialVM.Users = dropdown;
             };
            
             return View(credentialVM);
+        }
+
+        private bool IsUserUnderCredential(User user, Credential credential)
+        {
+            return credential.UserCredentials.Any(x => x.UserId == user.Id);
         }
 
         // POST: Credentials/Edit/5
@@ -274,15 +305,7 @@ namespace Uptime.CredentialManager.Web.Controllers
         {
 
             var credential = await SearchAsync(term); 
-            foreach (var cr in credential)
-            {
-               ViewBag.UserListSearch = cr.UserCredentials.Select(x => new UserViewModel
-                {
-                    UserId = x.UserId,
-                    UserName = x.User.Name
-                }).ToList();
-            }
-
+            
             return View(credential);            
         }
 
