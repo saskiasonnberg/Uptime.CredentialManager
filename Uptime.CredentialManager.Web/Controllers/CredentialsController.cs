@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Internal;
 using Uptime.CredentialManager.Web.Models;
 using Uptime.CredentialManager.Web.ViewModels;
+using System.Security.Claims;
 
 namespace Uptime.CredentialManager.Web.Controllers
 {
@@ -46,8 +47,34 @@ namespace Uptime.CredentialManager.Web.Controllers
         // GET: Credentials
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Credential.ToListAsync());
+            if (User.Identity.IsAuthenticated)
+            {
+                var identity = User.Identity as ClaimsIdentity;
+                string preferred_username = identity.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value;
+                
+                var user = await _context.User.Include(x => x.UserCredentials)
+                                              .ThenInclude(x => x.Credential)
+                                              .FirstOrDefaultAsync(m => m.Name == preferred_username);
+
+
+                var credentialsUnderUser = await _context.Credential.Include(x => x.UserCredentials)
+                                                                    .ThenInclude(x => x.User)
+                                                                    .Where(x => IsCredentialUnderUser(x, user))
+                                                                    .ToListAsync();
+
+                return View(credentialsUnderUser);
+            }
+            else
+            {
+                return Unauthorized();
+            }
+         }
+
+        private bool IsCredentialUnderUser(Credential credential, User user)
+        {
+            return user.UserCredentials.Any(x => x.CredentialId == credential.Id);
         }
+
 
         // GET: Credentials/Details/5
         public async Task<IActionResult> Details(Guid? id)
@@ -299,7 +326,6 @@ namespace Uptime.CredentialManager.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> Search(string term)
         {
-
             var credential = await SearchAsync(term); 
             
             return View(credential);            
