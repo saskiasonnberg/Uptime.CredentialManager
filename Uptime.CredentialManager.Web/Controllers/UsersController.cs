@@ -142,9 +142,29 @@ namespace Uptime.CredentialManager.Web.Controllers
             {
                 return NotFound();
             }
-                
-                         
-           var userVM = new UserEditViewModel();
+            
+
+            var unusedCredentials = await _context.Credential                                                  
+                                                  .Where(x => !IsCredentialUnderUser(x, user))
+                                                  .OrderBy(x => x.Description)
+                                                  .Select(x => new SelectListItem
+                                                  {
+                                                      Text = x.Description,
+                                                      Value = x.Id.ToString()
+                                                  })
+                                                  .ToListAsync();
+            
+            var credentialTipp = new SelectListItem()
+            {
+                Text = "--- select credential ---",
+                Value = null
+            };
+
+            unusedCredentials.Insert(0, credentialTipp);
+            var dropdown = new SelectList(unusedCredentials, "Value", "Text");
+                       
+
+            var userVM = new UserEditViewModel();
             {                
                 userVM.UserId = user.Id;
                 userVM.UserName = user.Name;
@@ -154,12 +174,16 @@ namespace Uptime.CredentialManager.Web.Controllers
                     Description = x.Credential.Description
                 }).ToList();
 
-                userVM.Credentials = GetCredentials(x => !x.UserCredentials.Any(y => x.Id == y.CredentialId));
-                                       
+                userVM.Credentials = dropdown;
             };
                             
 
             return View(userVM);
+        }
+
+        private bool IsCredentialUnderUser(Credential credential, User user)
+        {
+            return user.UserCredentials.Any(x => x.CredentialId == credential.Id);
         }
 
         // POST: Users/Edit/5
@@ -196,11 +220,9 @@ namespace Uptime.CredentialManager.Web.Controllers
                         throw;
                     }
                 }
-
-                return RedirectToAction(nameof(Index));
-               // return RedirectToAction("Edit", new { id = userVM.UserId });
-            }
-            
+                
+               return RedirectToAction("Edit", new { id = userVM.UserId });
+            }                       
             return View(userVM);
         }
 
@@ -213,7 +235,7 @@ namespace Uptime.CredentialManager.Web.Controllers
             }
 
             var user = await _context.User
-                .FirstOrDefaultAsync(m => m.Id == id);
+                                     .FirstOrDefaultAsync(m => m.Id == id);
             if (user == null)
             {
                 return NotFound();
@@ -244,8 +266,8 @@ namespace Uptime.CredentialManager.Web.Controllers
         {
             
             var user = await _context.User.Include(x => x.UserCredentials)
-                                              .ThenInclude(x => x.Credential)
-                                              .FirstOrDefaultAsync(m => m.Id == userId);
+                                          .ThenInclude(x => x.Credential)
+                                          .FirstOrDefaultAsync(m => m.Id == userId);
 
             var userCredential = user.UserCredentials.FirstOrDefault(x => x.CredentialId == credentialId);
 
