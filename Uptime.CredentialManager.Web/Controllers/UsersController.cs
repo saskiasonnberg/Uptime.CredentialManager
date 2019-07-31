@@ -144,15 +144,15 @@ namespace Uptime.CredentialManager.Web.Controllers
             }
             
 
-            var unusedCredentials = _context.Credential                                                  
-                .Where(x => !IsCredentialUnderUser(x, user))
-                .OrderBy(x => x.Description)
-                .Select(x => new SelectListItem
-                {
-                    Text = x.Description,
-                    Value = x.Id.ToString()
-                })
-                .ToList();
+            var unusedCredentials = await _context.Credential                                                  
+                                                  .Where(x => !IsCredentialUnderUser(x, user))
+                                                  .OrderBy(x => x.Description)
+                                                  .Select(x => new SelectListItem
+                                                  {
+                                                      Text = x.Description,
+                                                      Value = x.Id.ToString()
+                                                  })
+                                                  .ToListAsync();
             
             var credentialTipp = new SelectListItem()
             {
@@ -220,11 +220,9 @@ namespace Uptime.CredentialManager.Web.Controllers
                         throw;
                     }
                 }
-
-                //return RedirectToAction(nameof(Index));
+                
                return RedirectToAction("Edit", new { id = userVM.UserId });
-            }
-                       
+            }                       
             return View(userVM);
         }
 
@@ -237,7 +235,7 @@ namespace Uptime.CredentialManager.Web.Controllers
             }
 
             var user = await _context.User
-                .FirstOrDefaultAsync(m => m.Id == id);
+                                     .FirstOrDefaultAsync(m => m.Id == id);
             if (user == null)
             {
                 return NotFound();
@@ -268,8 +266,8 @@ namespace Uptime.CredentialManager.Web.Controllers
         {
             
             var user = await _context.User.Include(x => x.UserCredentials)
-                                              .ThenInclude(x => x.Credential)
-                                              .FirstOrDefaultAsync(m => m.Id == userId);
+                                          .ThenInclude(x => x.Credential)
+                                          .FirstOrDefaultAsync(m => m.Id == userId);
 
             var userCredential = user.UserCredentials.FirstOrDefault(x => x.CredentialId == credentialId);
 

@@ -95,13 +95,7 @@ namespace Uptime.CredentialManager.Web.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CredentialEditViewModel credentialVM)
-        {
-           /* if (pekkis)
-            {
-                return Unauthorized();
-
-            }*/
-
+        {    
             if (ModelState.IsValid)
             {
                var credential = new Credential();
@@ -146,15 +140,17 @@ namespace Uptime.CredentialManager.Web.Controllers
             }
 
 
-            var unusedUsers= _context.User
-                                    .Where(x => !IsUserUnderCredential(x, credential))
-                                    .OrderBy(x => x.Name)
-                                    .Select(x =>
-                                    new SelectListItem
-                                    {
-                                        Text = x.Name,
-                                        Value = x.Id.ToString()
-                                    }).ToList();
+            var unusedUsers = await _context.User
+                                            .Where(x => !IsUserUnderCredential(x, credential))
+                                            .OrderBy(x => x.Name)
+                                            .Select(x =>
+                                                new SelectListItem
+                                                {
+                                                    Text = x.Name,
+                                                    Value = x.Id.ToString()
+                                                })
+                                            .ToListAsync();
+
             var credentialTipp = new SelectListItem()
             {
                 Text = "--- select user ---",
@@ -223,7 +219,7 @@ namespace Uptime.CredentialManager.Web.Controllers
                     }
                 }
                 return RedirectToAction("Edit", new { id = credentialVM.Id });
-                //return RedirectToAction(nameof(Index));
+                
             }
             return View(credentialVM);
         }
