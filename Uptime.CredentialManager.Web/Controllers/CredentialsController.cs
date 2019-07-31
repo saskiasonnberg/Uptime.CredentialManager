@@ -9,9 +9,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Internal;
 using Uptime.CredentialManager.Web.Models;
 using Uptime.CredentialManager.Web.ViewModels;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Uptime.CredentialManager.Web.Controllers
 {
+    [Authorize]
     public class CredentialsController : Controller
     {
         private readonly UptimeCredentialManagerWebContext _context;
@@ -23,6 +26,7 @@ namespace Uptime.CredentialManager.Web.Controllers
 
         public IEnumerable<SelectListItem> GetUsers(Expression<Func<User, bool>> predicate)
         {
+
             List<SelectListItem> users = _context.User
                                                  .Include(x => x.UserCredentials)
                                                  .Where(predicate)
@@ -42,21 +46,38 @@ namespace Uptime.CredentialManager.Web.Controllers
             users.Insert(0, credentialTip);
             return new SelectList(users, "Value", "Text");
         }
+
         
         // GET: Credentials
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Credential.ToListAsync());
+            
+                var identity = User.Identity as ClaimsIdentity;
+                string preferred_username = identity.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value;
+                
+                var user = await _context.User.Include(x => x.UserCredentials)
+                                              .ThenInclude(x => x.Credential)
+                                              .FirstOrDefaultAsync(m => m.Name == preferred_username);
+
+
+                var credentialsUnderUser = await _context.Credential.Include(x => x.UserCredentials)
+                                                                    .ThenInclude(x => x.User)
+                                                                    .Where(x => IsCredentialUnderUser(x, user))
+                                                                    .ToListAsync();
+
+                return View(credentialsUnderUser);
+            
+         }
+
+        private bool IsCredentialUnderUser(Credential credential, User user)
+        {
+            return user.UserCredentials.Any(x => x.CredentialId == credential.Id);
         }
 
+        
         // GET: Credentials/Details/5
-        public async Task<IActionResult> Details(Guid? id)
-        {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
+        public async Task<IActionResult> Details(Guid id)
+        {          
             var credential = await _context.Credential.Include(x => x.UserCredentials)
                                                       .ThenInclude(x => x.User)
                                                       .FirstOrDefaultAsync(m => m.Id == id);
@@ -64,6 +85,15 @@ namespace Uptime.CredentialManager.Web.Controllers
             {
                 return NotFound();
             }
+
+            var identity = User.Identity as ClaimsIdentity;
+            string preferred_username = identity.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value;
+
+            if (!credential.UserCredentials.Any(x => x.User.Name == preferred_username))
+            {
+                return Unauthorized();
+            }
+                
 
             var credentialVM = new CredentialEditViewModel();
             {
@@ -299,7 +329,6 @@ namespace Uptime.CredentialManager.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> Search(string term)
         {
-
             var credential = await SearchAsync(term); 
             
             return View(credential);            
