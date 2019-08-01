@@ -12,6 +12,7 @@ namespace Uptime.CredentialManager.Web.ViewModels
         [Required]
         public string UserName { get; set; }
         public Guid UserId { get; set; }
+        public string UserRole { get; set; }
 
         public IEnumerable <CredentialViewModel> CredentialList { get; set; }
     }

@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Uptime.CredentialManager.Web.Models
 {
@@ -9,7 +7,9 @@ namespace Uptime.CredentialManager.Web.Models
     {
         public Guid Id { get; set; }
 
-        public string Name { get; set; }
+        public string Name { get; set; }    
+        
+        public string Role { get; set; }
 
         public ICollection<UserCredential> UserCredentials { get; set; }
 

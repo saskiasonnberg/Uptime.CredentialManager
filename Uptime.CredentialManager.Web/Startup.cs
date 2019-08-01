@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Logging;
+using Uptime.CredentialManager.Web.Authorization;
 
 namespace Uptime.CredentialManager.Web
 {
@@ -45,20 +46,26 @@ namespace Uptime.CredentialManager.Web
             
 
             services.AddMvc(options =>
-           {
-                var policy = new AuthorizationPolicyBuilder()
-                   .RequireAuthenticatedUser()
-                   .Build();
-                options.Filters.Add(new AuthorizeFilter(policy));
+            {
+               var policy = new AuthorizationPolicyBuilder()
+                  .RequireAuthenticatedUser()                  
+                  .Build();                          
+               options.Filters.Add(new AuthorizeFilter(policy));
 
                IdentityModelEventSource.ShowPII = true;
             })           
             .SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
 
-        
+            services.AddAuthorization(options =>
+            {
+                options.AddPolicy("IsAdmin",     
+                        policy => policy.Requirements.Add(new IsAdminRequirement()));
+            });
+
+            services.AddScoped<IAuthorizationHandler, IsAdminAuthorizationHandler>();
+
             services.AddDbContext<UptimeCredentialManagerWebContext>(options =>
-                                //options.UseSqlServer(Configuration.GetConnectionString("UptimeCredentialManagerWebContext")));
-                                options.UseInMemoryDatabase(databaseName: "User"));          
+                options.UseInMemoryDatabase(databaseName: "User"));          
            
         }
 
