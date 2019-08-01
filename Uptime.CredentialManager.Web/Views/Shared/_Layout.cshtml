@@ -29,9 +29,11 @@
                 <a asp-area="" asp-controller="Home" asp-action="Index" class="navbar-brand">Uptime.CredentialManager.Web</a>
             </div>
             <div class="navbar-collapse collapse">
-                <ul class="nav navbar-nav">                  
+                <ul class="nav navbar-nav">
                     <li><a asp-area="" asp-controller="Users" asp-action="Index">Users</a></li>
                     <li><a asp-area="" asp-controller="Credentials" asp-action="Index">Credentials</a></li>
+                    <li><a asp-area="" asp-controller="Credentials" asp-action="Search">Search</a></li>
+
                 </ul>
                 <partial name="_LoginPartial" />
             </div>
