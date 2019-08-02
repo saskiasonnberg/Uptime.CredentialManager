@@ -18,13 +18,18 @@
                 <span asp-validation-for="UserName" class="text-danger"></span>
             </div>
             <div class="form-group">
+                <label asp-for="IsAdmin" class="control-label">Role</label>
+                <input asp-for="IsAdmin" class="form-control" />
+                <span asp-validation-for="IsAdmin" class="text-danger"></span>
+            </div>
+            <div class="form-group">
                 <label asp-for="SelectedCredential" class="control-label">Credentials</label>
                 <select asp-for="SelectedCredential" asp-items="@Model.Credentials"></select>
                 <span asp-validation-for="SelectedCredential" class="text-danger"></span>
-            </div>                                 
-                <div class="form-group">
-                    <input type="submit" value="Create" class="btn btn-default" />
-                </div>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Create" class="btn btn-default" />
+            </div>
         </form>
     </div>
 </div>
