@@ -4,9 +4,7 @@ using System;
 namespace Uptime.CredentialManager.Web.Models
 {
     public class UptimeCredentialManagerWebContext : DbContext
-    {
-        internal readonly object user;
-
+    {       
         public UptimeCredentialManagerWebContext (DbContextOptions<UptimeCredentialManagerWebContext> options)
             : base(options)
         {
