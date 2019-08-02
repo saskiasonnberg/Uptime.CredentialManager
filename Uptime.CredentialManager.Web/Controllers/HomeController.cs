@@ -14,7 +14,7 @@ namespace Uptime.CredentialManager.Web.Controllers
         [Authorize]
         public IActionResult Index()
         {
-            return RedirectToAction("Index", "Users");           
+            return RedirectToAction("Search", "Credentials");           
         }
 
         public IActionResult About()

@@ -312,7 +312,9 @@ namespace Uptime.CredentialManager.Web.Controllers
         // GET: Credentials/Search
         public IActionResult Search()
         {
-            var credential = new List<Credential>();                    
+            var credential = new List<Credential>();
+            var identity = User.Identity as ClaimsIdentity;
+            ViewBag.CurrentUser = identity.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value;                              
             return View(credential);
         }
 
@@ -320,7 +322,9 @@ namespace Uptime.CredentialManager.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> Search(string term)
         {
-            var credential = await SearchAsync(term); 
+            var credential = await SearchAsync(term);
+            var identity = User.Identity as ClaimsIdentity;
+            ViewBag.CurrentUser = identity.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value;
             return View(credential);            
         }
 
