@@ -312,7 +312,7 @@ namespace Uptime.CredentialManager.Web.Controllers
         // GET: Credentials/Search
         public IActionResult Search()
         {
-            var credential = new List<Credential>();                    
+            var credential = new List<Credential>();                                      
             return View(credential);
         }
 
@@ -320,7 +320,7 @@ namespace Uptime.CredentialManager.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> Search(string term)
         {
-            var credential = await SearchAsync(term); 
+            var credential = await SearchAsync(term);
             return View(credential);            
         }
 

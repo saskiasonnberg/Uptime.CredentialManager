@@ -40,7 +40,7 @@ namespace Uptime.CredentialManager.Web.Models
                 {
                     Id = Guid.Parse("2f137865-fe52-42cc-92b9-3b9b4291297d"),
                     Name = "saskia.sonnberg@uptime.eu",
-                    Role = "User",
+                    Role = "Admin",
                 }
             });
 
