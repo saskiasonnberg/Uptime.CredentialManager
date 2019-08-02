@@ -50,9 +50,9 @@ namespace Uptime.CredentialManager.Web.Controllers
         public async Task<IActionResult> Index()
         {
             var users = await _context.User
-                                    .Include(x => x.UserCredentials)
-                                    .ThenInclude(x => x.Credential)
-                                    .ToListAsync();            
+                                      .Include(x => x.UserCredentials)
+                                      .ThenInclude(x => x.Credential)
+                                      .ToListAsync();            
             return View(users);
         }
 
