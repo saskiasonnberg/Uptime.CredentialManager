@@ -1,20 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Threading.Tasks;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Internal;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Security.Claims;
+using System.Threading.Tasks;
 using Uptime.CredentialManager.Web.Models;
 using Uptime.CredentialManager.Web.ViewModels;
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
 
 namespace Uptime.CredentialManager.Web.Controllers
 {
-    [Authorize]
     public class CredentialsController : Controller
     {
         private readonly UptimeCredentialManagerWebContext _context;
@@ -36,7 +35,8 @@ namespace Uptime.CredentialManager.Web.Controllers
                                                     {
                                                         Text = x.Name,
                                                         Value = x.Id.ToString()
-                                                    }).ToList();
+                                                    })
+                                                 .ToList();
             var credentialTip = new SelectListItem()
             {
                 Text = "--- select user ---",
@@ -50,8 +50,7 @@ namespace Uptime.CredentialManager.Web.Controllers
         
         // GET: Credentials
         public async Task<IActionResult> Index()
-        {
-            
+        {            
                 var identity = User.Identity as ClaimsIdentity;
                 string preferred_username = identity.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value;
                 
@@ -64,9 +63,7 @@ namespace Uptime.CredentialManager.Web.Controllers
                                                                     .ThenInclude(x => x.User)
                                                                     .Where(x => IsCredentialUnderUser(x, user))
                                                                     .ToListAsync();
-
-                return View(credentialsUnderUser);
-            
+                return View(credentialsUnderUser);           
          }
 
         private bool IsCredentialUnderUser(Credential credential, User user)
@@ -92,8 +89,7 @@ namespace Uptime.CredentialManager.Web.Controllers
             if (!credential.UserCredentials.Any(x => x.User.Name == preferred_username))
             {
                 return Unauthorized();
-            }
-                
+            }                
 
             var credentialVM = new CredentialEditViewModel();
             {
@@ -104,18 +100,18 @@ namespace Uptime.CredentialManager.Web.Controllers
                 {
                     UserId = x.UserId,
                     UserName = x.User.Name
-                }).ToList();
+                })
+                .ToList();
             };
-
             return View(credentialVM);
         }
 
-        // GET: Credentials/Create
+        // GET: Credentials/Create  
+        [Authorize("IsAdmin")]
         public IActionResult Create()
         {
             var credentialVM = new CredentialEditViewModel();
             credentialVM.Users = GetUsers(x => true);
-
             return View(credentialVM);
         }
 
@@ -124,6 +120,7 @@ namespace Uptime.CredentialManager.Web.Controllers
         // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize("IsAdmin")]
         public async Task<IActionResult> Create(CredentialEditViewModel credentialVM)
         {    
             if (ModelState.IsValid)
@@ -141,18 +138,17 @@ namespace Uptime.CredentialManager.Web.Controllers
                         var user = _context.Find<User>(userId);
                         credential.UserCredentials.Add(new UserCredential { User = user, Credential = credential });
                         _context.Add(credential);
-                    }
-                    
+                    }                   
 
                     await _context.SaveChangesAsync();
                     return RedirectToAction(nameof(Index));
-                }
-                                                          
+                }                                                          
             }
             return View(credentialVM);
         }
 
-        // GET: Credentials/Edit/5
+        // GET: Credentials/Edit/5   
+        [Authorize("IsAdmin")]
         public async Task<IActionResult> Edit(Guid? id)
         {
             if (id == null)
@@ -168,8 +164,7 @@ namespace Uptime.CredentialManager.Web.Controllers
             {
                 return NotFound();
             }
-
-
+            
             var unusedUsers = await _context.User
                                             .Where(x => !IsUserUnderCredential(x, credential))
                                             .OrderBy(x => x.Name)
@@ -189,8 +184,7 @@ namespace Uptime.CredentialManager.Web.Controllers
 
             unusedUsers.Insert(0, credentialTipp);
             var dropdown = new SelectList(unusedUsers, "Value", "Text");
-
-
+            
             var credentialVM = new CredentialEditViewModel();
             {
                 credentialVM.Id = credential.Id;
@@ -216,6 +210,7 @@ namespace Uptime.CredentialManager.Web.Controllers
         // POST: Credentials/Edit/5
         // To protect from overposting attacks, please enable the specific properties you want to bind to, for 
         // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
+        [Authorize("IsAdmin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(CredentialEditViewModel credentialVM)
@@ -248,13 +243,13 @@ namespace Uptime.CredentialManager.Web.Controllers
                         throw;
                     }
                 }
-                return RedirectToAction("Edit", new { id = credentialVM.Id });
-                
+                return RedirectToAction("Edit", new { id = credentialVM.Id });                
             }
             return View(credentialVM);
         }
 
-        // GET: Credentials/Delete/5
+        // GET: Credentials/Delete/5  
+        [Authorize("IsAdmin")]
         public async Task<IActionResult> Delete(Guid? id)
         {
             if (id == null)
@@ -273,6 +268,7 @@ namespace Uptime.CredentialManager.Web.Controllers
         }
 
         // POST: Credentials/Delete/5
+        [Authorize("IsAdmin")]
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(Guid id)
@@ -283,7 +279,7 @@ namespace Uptime.CredentialManager.Web.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        //[HttpGet("{userId}/{credentialId}")]
+        [Authorize("IsAdmin")]
         public async Task<IActionResult> Remove(Guid userId, Guid credentialId)
         {
 
@@ -292,11 +288,8 @@ namespace Uptime.CredentialManager.Web.Controllers
                                           .FirstOrDefaultAsync(m => m.Id == credentialId);
 
             var userCredential = credential.UserCredentials.FirstOrDefault(x => x.UserId == userId);
-
             credential.UserCredentials.Remove(userCredential);
-
             await _context.SaveChangesAsync();
-
             return RedirectToAction("Edit", new { id = credentialId });
         }                     
 
@@ -314,14 +307,12 @@ namespace Uptime.CredentialManager.Web.Controllers
                                             .Where(x => x.Description.Contains(pattern))
                                             .ToListAsync();
         }
-
-
+        
 
         // GET: Credentials/Search
         public IActionResult Search()
         {
-            var credential = new List<Credential>();                      
-
+            var credential = new List<Credential>();                    
             return View(credential);
         }
 
@@ -330,7 +321,6 @@ namespace Uptime.CredentialManager.Web.Controllers
         public async Task<IActionResult> Search(string term)
         {
             var credential = await SearchAsync(term); 
-            
             return View(credential);            
         }
 
