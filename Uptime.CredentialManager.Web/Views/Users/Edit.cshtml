@@ -12,12 +12,19 @@
     <div class="col-md-4">
         <form asp-action="Edit" method="post">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="UserId" />
+            <!--<input type="hidden" asp-for="UserRole" />-->
             <div class="form-group">
                 <label asp-for="UserName" class="control-label">Username</label>
                 <input asp-for="UserName" class="form-control" />
                 <span asp-validation-for="UserName" class="text-danger"></span>
+            </div>                        
+            <div class="form-group">
+                <label asp-for="IsAdmin" class="control-label">Role</label>
+                <input asp-for="IsAdmin" type="checkbox" value="true" name="IsAdmin"/>
+                <input type="hidden" asp-for="IsAdmin" value="false" name="IsAdmin" />
+                <span asp-validation-for="IsAdmin" class="control-label"></span>
             </div>
-            <input type ="hidden" asp-for="UserId" />
             <div>
                 <div class="form-group">
                     <label asp-for="Credentials" class="control-label">Credentials</label>
@@ -29,7 +36,7 @@
                 <table>
                     <col width="150">
                     <col width="150">
-                    
+
                     @foreach (var credential in @Model.CredentialList)
                     {
                         <tr>

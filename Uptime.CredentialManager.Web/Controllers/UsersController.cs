@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using Uptime.CredentialManager.Web.Authorization;
 using Uptime.CredentialManager.Web.Models;
 using Uptime.CredentialManager.Web.ViewModels;
 
@@ -106,8 +107,17 @@ namespace Uptime.CredentialManager.Web.Controllers
                 {
                     user.Id = Guid.NewGuid();
                     user.Name = userVM.UserName;
-                    user.Role = userVM.UserRole;
-                    user.UserCredentials = new List<UserCredential>();
+
+                    if (userVM.IsAdmin == true)
+                    {
+                        user.Role = Roles.Admin;
+                    }
+                    else
+                    {
+                        user.Role = Roles.User;    
+                    }   
+                    
+                    user.UserCredentials = new List<UserCredential>();                                        
 
                     foreach (Guid credentialId in userVM.SelectedCredential)
                     {
@@ -164,8 +174,16 @@ namespace Uptime.CredentialManager.Web.Controllers
             {                
                 userVM.UserId = user.Id;
                 userVM.UserName = user.Name;
-                userVM.UserRole = user.Role;
 
+                if (user.Role == Roles.Admin)
+                {
+                    userVM.IsAdmin = true;
+                }
+                else 
+                {
+                    userVM.IsAdmin = false;
+                }
+               
                 userVM.CredentialList = user.UserCredentials.Select(x => new CredentialViewModel
                 {
                     Id = x.CredentialId,
@@ -198,14 +216,25 @@ namespace Uptime.CredentialManager.Web.Controllers
                                              .Include(x => x.UserCredentials)
                                              .FirstOrDefaultAsync(m => m.Id == userVM.UserId);
                     {                       
-                        user.Name = userVM.UserName;                        
+                        user.Name = userVM.UserName;
 
-
-                        foreach (Guid credentialId in userVM.SelectedCredential)
+                        if (userVM.IsAdmin == true)
                         {
-                            var credential = _context.Find<Credential>(credentialId);
-                            user.UserCredentials.Add(new UserCredential { User = user, Credential = credential });
-                        }                                               
+                            user.Role = Roles.Admin;
+                        }
+                        else if (userVM.IsAdmin == false)
+                        {
+                            user.Role = Roles.User;
+                        }
+
+                        if (userVM.SelectedCredential != null)
+                        {
+                            foreach (Guid credentialId in userVM.SelectedCredential)
+                            {
+                                var credential = _context.Find<Credential>(credentialId);
+                                user.UserCredentials.Add(new UserCredential { User = user, Credential = credential });
+                            }
+                        }                                             
                     }
                     await _context.SaveChangesAsync();
                 }
