@@ -206,7 +206,7 @@ namespace Uptime.CredentialManager.Web.Controllers
         [Authorize("IsAdmin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(UserEditViewModel userVM, bool checkAdmin = false)
+        public async Task<IActionResult> Edit(UserEditViewModel userVM)
         {
             if (ModelState.IsValid)
             {
