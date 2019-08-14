@@ -9,26 +9,23 @@ namespace Uptime.CredentialManager.Web.Authorization
 {
     public class IsAdminAuthorizationHandler : AuthorizationHandler<IsAdminRequirement>
     {
-        private readonly UptimeCredentialManagerWebContext db;
+        private readonly CredentialManagerDbContext _db;
 
-        public IsAdminAuthorizationHandler(UptimeCredentialManagerWebContext db)
+        public IsAdminAuthorizationHandler(CredentialManagerDbContext db)
         {
-            this.db = db;
+            _db = db;
         }
 
         protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, IsAdminRequirement requirement)
         {
             var identity = context.User.Identity as ClaimsIdentity;
-            string preferred_username = identity.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value;
+            var username = identity.Claims.FirstOrDefault(c => c.Type == Claims.PreferredUsername)?.Value;
             
-            var userCompare = await db.User
-                                   .Include(x => x.UserCredentials)
-                                   .ThenInclude(x => x.Credential)
-                                   .Where(x => x.Role == Roles.Admin)
-                                   .FirstOrDefaultAsync(m => m.Name == preferred_username);            
+            var adminUserExists = await _db.Users
+                .AnyAsync(x => x.Role == Roles.Admin && x.Name == username);            
 
-            if (userCompare != null)
-            {                                          
+            if (adminUserExists)
+            {
                 context.Succeed(requirement);
             }
         }        

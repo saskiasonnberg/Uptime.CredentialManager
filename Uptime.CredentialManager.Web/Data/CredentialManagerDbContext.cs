@@ -3,16 +3,16 @@ using System;
 
 namespace Uptime.CredentialManager.Web.Models
 {
-    public class UptimeCredentialManagerWebContext : DbContext
+    public class CredentialManagerDbContext : DbContext
     {       
-        public UptimeCredentialManagerWebContext (DbContextOptions<UptimeCredentialManagerWebContext> options)
+        public CredentialManagerDbContext (DbContextOptions<CredentialManagerDbContext> options)
             : base(options)
         {
         }
 
-        public DbSet<Credential> Credential { get; set; }
+        public DbSet<Credential> Credentials { get; set; }
 
-        public DbSet<User> User { get; set; }
+        public DbSet<User> Users { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -22,7 +22,6 @@ namespace Uptime.CredentialManager.Web.Models
                     Id = Guid.Parse("5327d54b-aa1b-41c2-9b25-be98c7bee83b"),
                     Name = "Kersti",
                     Role = "User",
-                    
                 },
                 new
                 {
@@ -70,7 +69,6 @@ namespace Uptime.CredentialManager.Web.Models
                     Value = "parool4",
                 }
             });
-
         }
     }
 }

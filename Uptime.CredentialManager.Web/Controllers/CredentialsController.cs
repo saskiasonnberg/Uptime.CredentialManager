@@ -9,6 +9,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Uptime.CredentialManager.Web.Authorization;
 using Uptime.CredentialManager.Web.Models;
 using Uptime.CredentialManager.Web.ViewModels;
 
@@ -16,77 +17,97 @@ namespace Uptime.CredentialManager.Web.Controllers
 {
     public class CredentialsController : Controller
     {
-        private readonly UptimeCredentialManagerWebContext _context;
+        private readonly CredentialManagerDbContext _db;
 
-        public CredentialsController(UptimeCredentialManagerWebContext context)
+        public CredentialsController(CredentialManagerDbContext db)
         {
-            _context = context;
+            _db = db;
         }
 
-        public IEnumerable<SelectListItem> GetUsers(Expression<Func<User, bool>> predicate)
+        private async Task<SelectList> GetUsersAsync(Expression<Func<User, bool>> filter)
         {
+            var users = await _db.Users
+                .Include(x => x.UserCredentials)
+                .Where(filter)
+                .OrderBy(x => x.Name)
+                .Select(x => new SelectListItem
+                {
+                    Text = x.Name,
+                    Value = x.Id.ToString()
+                })
+                .ToListAsync();
 
-            List<SelectListItem> users = _context.User
-                                                 .Include(x => x.UserCredentials)
-                                                 .Where(predicate)
-                                                 .OrderBy(x => x.Name)
-                                                 .Select(x =>
-                                                    new SelectListItem
-                                                    {
-                                                        Text = x.Name,
-                                                        Value = x.Id.ToString()
-                                                    })
-                                                 .ToList();
-            var credentialTip = new SelectListItem()
+            users.Insert(0, new SelectListItem()
             {
                 Text = "--- select user ---",
                 Value = null
-            };
+            });
 
-            users.Insert(0, credentialTip);
-            return new SelectList(users, "Value", "Text");
+            return new SelectList(users, nameof(SelectListItem.Value), nameof(SelectListItem.Text));
         }
-
-        
-        // GET: Credentials
-        public async Task<IActionResult> Index()
-        {            
-                var identity = User.Identity as ClaimsIdentity;
-                string preferred_username = identity.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value;
-                
-                var user = await _context.User.Include(x => x.UserCredentials)
-                                              .ThenInclude(x => x.Credential)
-                                              .FirstOrDefaultAsync(m => m.Name == preferred_username);
-
-
-                var credentialsUnderUser = await _context.Credential.Include(x => x.UserCredentials)
-                                                                    .ThenInclude(x => x.User)
-                                                                    .Where(x => IsCredentialUnderUser(x, user))
-                                                                    .ToListAsync();
-                return View(credentialsUnderUser);           
-         }
 
         private bool IsCredentialUnderUser(Credential credential, User user)
         {
             return user.UserCredentials.Any(x => x.CredentialId == credential.Id);
         }
 
-        
-        // GET: Credentials/Details/5
+        private bool IsUserUnderCredential(User user, Credential credential)
+        {
+            return credential.UserCredentials.Any(x => x.UserId == user.Id);
+        }
+
+        private bool CredentialExists(Guid id)
+        {
+            return _db.Credentials.Any(e => e.Id == id);
+        }
+
+        private async Task<IEnumerable<Credential>> SearchAsync(string term)
+        {
+            var pattern = $"{term}";
+
+            return await _db.Credentials.Include(x => x.UserCredentials)
+                                            .ThenInclude(x => x.User)
+                                            .Where(x => x.Description.Contains(pattern))
+                                            .ToListAsync();
+        }
+
+        [HttpGet("[controller]/[action]")]
+        public async Task<IActionResult> Index()
+        {            
+                var identity = User.Identity as ClaimsIdentity;
+                var username = identity.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value;
+                
+                var user = await _db.Users
+                    .Include(x => x.UserCredentials)
+                    .ThenInclude(x => x.Credential)
+                    .FirstOrDefaultAsync(m => m.Name == username);
+
+                var credentialsUnderUser = await _db.Credentials
+                    .Include(x => x.UserCredentials)
+                    .ThenInclude(x => x.User)
+                    .Where(x => IsCredentialUnderUser(x, user))
+                    .ToListAsync();
+
+                return View(credentialsUnderUser);           
+         }
+
+        [HttpGet("[controller]/[action]")]
         public async Task<IActionResult> Details(Guid id)
         {          
-            var credential = await _context.Credential.Include(x => x.UserCredentials)
-                                                      .ThenInclude(x => x.User)
-                                                      .FirstOrDefaultAsync(m => m.Id == id);
+            var credential = await _db.Credentials
+                .Include(x => x.UserCredentials)
+                .ThenInclude(x => x.User)
+                .FirstOrDefaultAsync(m => m.Id == id);
+
             if (credential == null)
             {
                 return NotFound();
             }
 
             var identity = User.Identity as ClaimsIdentity;
-            string preferred_username = identity.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value;
+            var username = identity.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value;
 
-            if (!credential.UserCredentials.Any(x => x.User.Name == preferred_username))
+            if (!credential.UserCredentials.Any(x => x.User.Name == username))
             {
                 return Unauthorized();
             }                
@@ -96,59 +117,65 @@ namespace Uptime.CredentialManager.Web.Controllers
                 credentialVM.Id = credential.Id;
                 credentialVM.Description = credential.Description;
                 credentialVM.Value = credential.Value;
-                credentialVM.UserList = credential.UserCredentials.Select(x => new UserViewModel
-                {
-                    UserId = x.UserId,
-                    UserName = x.User.Name
-                })
-                .ToList();
-            };
-            return View(credentialVM);
-        }
-
-        // GET: Credentials/Create  
-        [Authorize("IsAdmin")]
-        public IActionResult Create()
-        {
-            var credentialVM = new CredentialEditViewModel();
-            credentialVM.Users = GetUsers(x => true);
-            return View(credentialVM);
-        }
-
-        // POST: Credentials/Create
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for 
-        // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Authorize("IsAdmin")]
-        public async Task<IActionResult> Create(CredentialEditViewModel credentialVM)
-        {    
-            if (ModelState.IsValid)
-            {
-               var credential = new Credential();
-                {
-                    credential.Id = Guid.NewGuid();
-                    credential.Description = credentialVM.Description;
-                    credential.Value = credentialVM.Value;                         
-             
-                    credential.UserCredentials = new List<UserCredential>();
-                                      
-                    foreach (Guid userId in credentialVM.SelectedUser)
+                credentialVM.UserList = credential.UserCredentials
+                    .Select(x => new UserViewModel
                     {
-                        var user = _context.Find<User>(userId);
-                        credential.UserCredentials.Add(new UserCredential { User = user, Credential = credential });
-                        _context.Add(credential);
-                    }                   
+                        UserId = x.UserId,
+                        UserName = x.User.Name
+                    })
+                    .ToList();
+            };
 
-                    await _context.SaveChangesAsync();
-                    return RedirectToAction(nameof(Index));
-                }                                                          
-            }
             return View(credentialVM);
         }
 
-        // GET: Credentials/Edit/5   
-        [Authorize("IsAdmin")]
+        [HttpGet("[controller]/[action]")]
+        [Authorize(IsAdminPolicy.Name)]
+        public async Task<IActionResult> Create()
+        {
+            var users = await GetUsersAsync(x => true);
+
+            var credentialVM = new CredentialEditViewModel
+            {
+                Users = users,
+            };
+            
+            return View(credentialVM);
+        }
+
+        [HttpPost("[controller]/[action]")]
+        [ValidateAntiForgeryToken]
+        [Authorize(IsAdminPolicy.Name)]
+        public async Task<IActionResult> Create(CredentialEditViewModel credentialVM)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(credentialVM);
+            }
+
+            var credential = new Credential
+            {
+                Description = credentialVM.Description,
+                Value = credentialVM.Value,
+                UserCredentials = new List<UserCredential>(),
+            };
+
+            foreach (var userId in credentialVM.SelectedUser)
+            {
+                credential.UserCredentials.Add(new UserCredential
+                {
+                    UserId = userId
+                });
+            }
+
+            _db.Add(credential);
+            await _db.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpGet("[controller]/[action]")]
+        [Authorize(IsAdminPolicy.Name)]
         public async Task<IActionResult> Edit(Guid? id)
         {
             if (id == null)
@@ -156,7 +183,7 @@ namespace Uptime.CredentialManager.Web.Controllers
                 return NotFound();
             }
 
-            var credential = await _context.Credential.Include(x => x.UserCredentials)
+            var credential = await _db.Credentials.Include(x => x.UserCredentials)
                                                       .ThenInclude(x => x.User)
                                                       .FirstOrDefaultAsync(m => m.Id == id);           
                                                
@@ -165,7 +192,7 @@ namespace Uptime.CredentialManager.Web.Controllers
                 return NotFound();
             }
             
-            var unusedUsers = await _context.User
+            var unusedUsers = await _db.Users
                                             .Where(x => !IsUserUnderCredential(x, credential))
                                             .OrderBy(x => x.Name)
                                             .Select(x =>
@@ -202,16 +229,8 @@ namespace Uptime.CredentialManager.Web.Controllers
             return View(credentialVM);
         }
 
-        private bool IsUserUnderCredential(User user, Credential credential)
-        {
-            return credential.UserCredentials.Any(x => x.UserId == user.Id);
-        }
-
-        // POST: Credentials/Edit/5
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for 
-        // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
-        [Authorize("IsAdmin")]
-        [HttpPost]
+        [HttpPost("[controller]/[action]")]
+        [Authorize(IsAdminPolicy.Name)]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(CredentialEditViewModel credentialVM)
         {
@@ -219,18 +238,18 @@ namespace Uptime.CredentialManager.Web.Controllers
             {
                 try
                 {
-                    var credential = await _context.Credential.Include(x => x.UserCredentials).FirstOrDefaultAsync(m => m.Id == credentialVM.Id);
+                    var credential = await _db.Credentials.Include(x => x.UserCredentials).FirstOrDefaultAsync(m => m.Id == credentialVM.Id);
                     {
                         credential.Description = credentialVM.Description;
                         credential.Value = credentialVM.Value;
 
                         foreach (Guid userId in credentialVM.SelectedUser)
                         {
-                            var user = _context.Find<User>(userId);
+                            var user = _db.Find<User>(userId);
                             credential.UserCredentials.Add(new UserCredential { User = user, Credential = credential });
                         }
                     }
-                    await _context.SaveChangesAsync();
+                    await _db.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -248,8 +267,8 @@ namespace Uptime.CredentialManager.Web.Controllers
             return View(credentialVM);
         }
 
-        // GET: Credentials/Delete/5  
-        [Authorize("IsAdmin")]
+        [HttpGet("[controller]/[action]")]
+        [Authorize(IsAdminPolicy.Name)]
         public async Task<IActionResult> Delete(Guid? id)
         {
             if (id == null)
@@ -257,7 +276,7 @@ namespace Uptime.CredentialManager.Web.Controllers
                 return NotFound();
             }
 
-            var credential = await _context.Credential
+            var credential = await _db.Credentials
                 .FirstOrDefaultAsync(m => m.Id == id);
             if (credential == null)
             {
@@ -267,62 +286,44 @@ namespace Uptime.CredentialManager.Web.Controllers
             return View(credential);
         }
 
-        // POST: Credentials/Delete/5
-        [Authorize("IsAdmin")]
-        [HttpPost, ActionName("Delete")]
+        [Authorize(IsAdminPolicy.Name)]
+        [HttpPost("[controller]/Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(Guid id)
         {
-            var credential = await _context.Credential.FindAsync(id);
-            _context.Credential.Remove(credential);
-            await _context.SaveChangesAsync();
+            var credential = await _db.Credentials.FindAsync(id);
+            _db.Credentials.Remove(credential);
+            await _db.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 
-        [Authorize("IsAdmin")]
+        [HttpGet("[controller]/[action]")]
+        [Authorize(IsAdminPolicy.Name)]
         public async Task<IActionResult> Remove(Guid userId, Guid credentialId)
         {
 
-            var credential = await _context.Credential.Include(x => x.UserCredentials)
+            var credential = await _db.Credentials.Include(x => x.UserCredentials)
                                           .ThenInclude(x => x.User)
                                           .FirstOrDefaultAsync(m => m.Id == credentialId);
 
             var userCredential = credential.UserCredentials.FirstOrDefault(x => x.UserId == userId);
             credential.UserCredentials.Remove(userCredential);
-            await _context.SaveChangesAsync();
+            await _db.SaveChangesAsync();
             return RedirectToAction("Edit", new { id = credentialId });
         }                     
 
-        private bool CredentialExists(Guid id)
-        {
-            return _context.Credential.Any(e => e.Id == id);
-        }
-
-        private async Task<IEnumerable<Credential>> SearchAsync(string term)
-        {
-            var pattern = $"{term}";           
-
-            return await _context.Credential.Include(x => x.UserCredentials)
-                                            .ThenInclude(x => x.User)
-                                            .Where(x => x.Description.Contains(pattern))
-                                            .ToListAsync();
-        }
-        
-
-        // GET: Credentials/Search
+        [HttpGet("/")]
         public IActionResult Search()
         {
             var credential = new List<Credential>();                                      
             return View(credential);
         }
 
-        // POST: Credentials/Search
-        [HttpPost]
+        [HttpPost("[controller]/[action]")]
         public async Task<IActionResult> Search(string term)
         {
             var credential = await SearchAsync(term);
             return View(credential);            
         }
-
     }
 }

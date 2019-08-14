@@ -1,5 +1,3 @@
-using System;
-
 namespace Uptime.CredentialManager.Web.Models
 {
     public class ErrorViewModel

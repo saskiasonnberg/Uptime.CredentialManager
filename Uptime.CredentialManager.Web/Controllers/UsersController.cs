@@ -16,16 +16,16 @@ namespace Uptime.CredentialManager.Web.Controllers
 {
     public class UsersController : Controller
     {
-        private readonly UptimeCredentialManagerWebContext _context;
+        private readonly CredentialManagerDbContext _context;
 
-        public UsersController(UptimeCredentialManagerWebContext context)
+        public UsersController(CredentialManagerDbContext context)
         {
             _context = context;
         }
 
         public IEnumerable<SelectListItem> GetCredentials(Expression<Func<Credential, bool>> predicate)
         {
-            List<SelectListItem> credentials = _context.Credential
+            List<SelectListItem> credentials = _context.Credentials
                                                        .Include(x => x.UserCredentials)
                                                        .Where(predicate)
                                                        .OrderBy(x => x.Description)
@@ -50,7 +50,7 @@ namespace Uptime.CredentialManager.Web.Controllers
         // GET: Users
         public async Task<IActionResult> Index()
         {
-            var users = await _context.User
+            var users = await _context.Users
                                       .Include(x => x.UserCredentials)
                                       .ThenInclude(x => x.Credential)
                                       .ToListAsync();            
@@ -60,7 +60,7 @@ namespace Uptime.CredentialManager.Web.Controllers
         // GET: Users/Details/5
         public async Task<IActionResult> Details(Guid id)
         {
-            var user = await _context.User.Include(x => x.UserCredentials)
+            var user = await _context.Users.Include(x => x.UserCredentials)
                                           .ThenInclude(x => x.Credential)
                                           .FirstOrDefaultAsync(m => m.Id == id);
 
@@ -142,7 +142,7 @@ namespace Uptime.CredentialManager.Web.Controllers
                 return NotFound();
             }
             
-            var user = await _context.User.Include(x => x.UserCredentials)
+            var user = await _context.Users.Include(x => x.UserCredentials)
                                           .ThenInclude(x => x.Credential)
                                           .FirstOrDefaultAsync(m => m.Id == id);
 
@@ -151,7 +151,7 @@ namespace Uptime.CredentialManager.Web.Controllers
                 return NotFound();
             }            
 
-            var unusedCredentials = await _context.Credential                                                  
+            var unusedCredentials = await _context.Credentials                                                  
                                                   .Where(x => !IsCredentialUnderUser(x, user))
                                                   .OrderBy(x => x.Description)
                                                   .Select(x => new SelectListItem
@@ -212,7 +212,7 @@ namespace Uptime.CredentialManager.Web.Controllers
             {
                 try
                 {
-                    var user = await _context.User
+                    var user = await _context.Users
                                              .Include(x => x.UserCredentials)
                                              .FirstOrDefaultAsync(m => m.Id == userVM.UserId);
                     {                       
@@ -263,7 +263,7 @@ namespace Uptime.CredentialManager.Web.Controllers
                 return NotFound();
             }
 
-            var user = await _context.User.FirstOrDefaultAsync(m => m.Id == id);
+            var user = await _context.Users.FirstOrDefaultAsync(m => m.Id == id);
 
             if (user == null)
             {
@@ -278,15 +278,15 @@ namespace Uptime.CredentialManager.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(Guid id)
         {
-            var user = await _context.User.FindAsync(id);
-            _context.User.Remove(user);
+            var user = await _context.Users.FindAsync(id);
+            _context.Users.Remove(user);
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }                
 
         private bool UserExists(Guid id)
         {
-            return _context.User.Any(e => e.Id == id);
+            return _context.Users.Any(e => e.Id == id);
         }
         
         
@@ -294,7 +294,7 @@ namespace Uptime.CredentialManager.Web.Controllers
         public async Task<IActionResult> Remove(Guid userId, Guid credentialId)
         {
             
-            var user = await _context.User.Include(x => x.UserCredentials)
+            var user = await _context.Users.Include(x => x.UserCredentials)
                                           .ThenInclude(x => x.Credential)
                                           .FirstOrDefaultAsync(m => m.Id == userId);
 
